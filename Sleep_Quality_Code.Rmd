@@ -1,0 +1,534 @@
+---
+title: "Sleep Quality Predicting"
+author: "Ava Nafisi and Sydney Gillis"
+date: "2023-11-03"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE, results='hide'}
+# Use that results = 'hide' whenever you don't want the output to show in the paper
+# library needed to run model selection algorithms
+#install.packages("corrplot")
+#install.packages("Hmisc")
+
+library(olsrr)
+library(fastDummies)
+library(knitr)
+library(corrplot)
+library(Hmisc)
+```
+
+```{r, echo=FALSE, results='hide'}
+# Three decimals just made sense to me but feel free to change it lol
+options(
+  digits = 4
+)
+```
+
+# Project 2
+
+# Background
+
+The dataset was obtained by kaggle.com from the following URL: https://www.kaggle.com/datasets/uom190346a/sleep-health-and-lifestyle-dataset.
+
+The dataset was collected for 374 Individuals. The data set contains 12 columns. These include the following:
+
+Person ID - identifier of each observation
+
+Gender - Gender of person (Male/Female)
+
+Age - age of person (years)
+
+Occupation - name of person's occupation 
+
+Sleep Duration - amount of hours person sleeps per night (hours)
+
+Quality of Sleep - subjective numerical rating of their quality of sleep (1-10)
+
+Physical Activity Level - number of daily physical activity (minutes/day)
+
+Stress Level - subjective numerical rating of stress level (1-10)
+
+BMI Category - BMI category of person (Normal, Overweight, Obese)
+
+Blood Pressure - 1 = high blood pressure, 0 = normal blood pressure
+
+Heart Rate - resting heart rate (bpm)
+
+Daily Steps: steps taken per day.
+
+Sleep Disorder: If the person has a sleep disorder (None, Insomnia, Sleep Apnea)
+
+<br>
+
+All statistical analysis done in the report is through R Studio v1.4. The report is created in a R markdown file in tandem with its r coding. 
+
+```{r, echo=FALSE, results='hide'}
+# Ava's file read
+sleep <- read.csv(
+  file = "C:/Users/Ava/Desktop/Statistics/Stats 3/Project 2/Sleep_health_and_lifestyle_dataset (1).csv",
+  header = TRUE,
+  stringsAsFactor = TRUE)
+
+#Sydney you can add your read.csv here then just comment mine out
+#sleep <- read.csv(file = "~/Downloads/Sleep_health_and_lifestyle_dataset.csv", header = TRUE, stringsAsFactors = TRUE)
+#sleep
+```
+
+# Exploration
+
+```{r, echo =FALSE}
+#we need to prepare the data for the dummies
+sleep_wdummy <- dummy_cols(sleep)
+head(sleep, 10)
+
+```
+
+Here is a summary of the values of each variable:
+
+```{r, echo=FALSE}
+summary(sleep[c("Age", "Sleep.Duration", "Quality.of.Sleep", "Physical.Activity.Level", "Stress.Level", "Heart.Rate", "Daily.Steps", "Occupation", "Gender", "Sleep.Disorder", "BMI.Category", "Blood.Pressure")])
+```
+#b. General graphs- just for organization sake we can remove this label later
+
+The response variable for this dataset will be the Duration of Sleep, the range of values is between 5.800 and 8.500, with a mean of 7.130.
+
+Lets set up some models to compare our response variable with the other independent variables:
+```{r, echo=FALSE, results='hide'}
+#Age
+par(
+  mfrow=c(1,1)
+)
+plot(
+  x = sleep$Age,
+  y = sleep$Sleep.Duration,
+  xlab="Age", 
+  ylab="Sleep Duration"
+)
+lm_Age <- lm(
+  formula = Sleep.Duration ~ Age,
+  data = sleep)
+```
+# From the residuals plot it seems that age may have a non-linear relationship with sleep duration, but this seems to be pulled down by an outlier.
+```{r, echo=FALSE, results='hide'}
+#Quality of Sleep
+par(
+  mfrow=c(1,1)
+)
+plot(
+  x = sleep$Quality.of.Sleep,
+  y = sleep$Sleep.Duration,
+  xlab="Quality of Sleep", 
+  ylab="Sleep Duration"
+)
+lm_QualityofSleep <- lm(
+  formula = Sleep.Duration ~ Quality.of.Sleep,
+  data = sleep)
+
+plot(lm_QualityofSleep)
+
+```
+#Quality of sleep seems to have a non-linear relationship with sleep duration.
+```{r, echo=FALSE, results='hide'}
+#Physical Activity Level
+par(
+  mfrow=c(1,1)
+)
+plot(
+  x = sleep$Physical.Activity.Level,
+  y = sleep$Sleep.Duration,
+  xlab="Physical Activity Level", 
+  ylab="Sleep Duration"
+)
+lm_PhysicalActivity <- lm(
+  formula = Sleep.Duration ~ (Physical.Activity.Level),
+  data = sleep)
+
+plot(lm_PhysicalActivity)
+```
+#It appears that Physical Activity level has a non-linear relationship with sleep duration.
+```{r, echo=FALSE, results='hide'}
+#Stress Level
+par(
+  mfrow=c(1,1)
+)
+plot(
+  x = sleep$Stress.Level,
+  y = sleep$Sleep.Duration,
+  xlab="Stress Level", 
+  ylab="Sleep Duration"
+)
+lm_StressLevel <- lm(
+  formula = Sleep.Duration ~ Stress.Level,
+  data = sleep)
+
+plot(lm_StressLevel)
+```
+#It appears that stress level and sleep duration have a linear relationship.
+```{r, echo=FALSE, results='hide'}
+#Heart Rate
+par(
+  mfrow=c(1,1)
+)
+plot(
+  x = sleep$Heart.Rate,
+  y = sleep$Sleep.Duration,
+  xlab="Heart Rate", 
+  ylab="Sleep Duration"
+)
+lm_HeartRate <- lm(
+  formula = Sleep.Duration ~ Heart.Rate,
+  data = sleep)
+
+plot(lm_HeartRate)
+```
+#It appears that heart rate and sleep duration have a non-linear relationship, however, this may be influenced by outliers.
+```{r, echo=FALSE, results='hide'}
+#Daily Steps
+par(
+  mfrow=c(1,1)
+)
+plot(
+  x = sleep$Daily.Steps,
+  y = sleep$Sleep.Duration,
+  xlab="Daily Steps", 
+  ylab="Sleep Duration"
+)
+lm_DailySteps <- lm(
+  formula = Sleep.Duration ~ Daily.Steps,
+  data = sleep)
+
+plot(lm_DailySteps)
+
+```
+#Daily steps seems to have a curvilinear relationship with Sleep Duration.
+```{r, echo=FALSE}
+#BMI Category
+par(
+  mfrow=c(1,1)
+)
+plot(
+  x = sleep$BMI.Category,
+  y = sleep$Sleep.Duration,
+  xlab="BMI Category", 
+  ylab="Sleep Duration"
+)
+lm_BMICat <- lm(
+  formula = Sleep.Duration ~ BMI.Category,
+  data = sleep)
+
+plot(lm_BMICat)
+
+```
+#From the plot it appears BMI Category has a strong linear relationship with sleep duration.
+```{r,echo=FALSE}
+#Gender
+par(
+  mfrow=c(1,1)
+)
+plot(
+  x = sleep$Gender,
+  y = sleep$Sleep.Duration,
+  xlab="Gender", 
+  ylab="Sleep Duration"
+)
+lm_Gender <- lm(
+  formula = Sleep.Duration ~ Gender,
+  data = sleep)
+
+plot(lm_Gender)
+
+```
+#So does gender.
+```{r,echo=FALSE}
+#Occupation
+par(
+  mfrow=c(1,1)
+)
+plot(
+  x = sleep$Occupation,
+  y = sleep$Sleep.Duration,
+  xlab="Occupation", 
+  ylab="Sleep Duration"
+)
+lm_Occupation <- lm(
+  formula = Sleep.Duration ~ Occupation,
+  data = sleep)
+
+plot(lm_Occupation)
+```
+#Sleep duration also seems to strongly correlate with occupation.
+```{r,echo=FALSE}
+#Sleep Disorder
+par(
+  mfrow=c(1,1)
+)
+plot(
+  x = sleep$Sleep.Disorder,
+  y = sleep$Sleep.Duration,
+  xlab="Sleep Disorder", 
+  ylab="Sleep Duration"
+)
+lm_SleepDisorder <- lm(
+  formula = Sleep.Duration ~ Sleep.Disorder,
+  data = sleep)
+
+plot(lm_SleepDisorder)
+
+```
+#Sleep duration does seem to have a negative relationship with insomnia.
+```{r, echo=FALSE}
+#Blood Pressure
+par(
+  mfrow=c(1,1)
+)
+plot(
+  x = sleep$Blood.Pressure,
+  y = sleep$Sleep.Duration,
+  xlab="Blood Pressure", 
+  ylab="Sleep Duration"
+)
+lm_BloodPressure <- lm(
+  formula = Sleep.Duration ~ Blood.Pressure,
+  data = sleep)
+
+plot(lm_BloodPressure)
+
+```
+<br>
+After viewing the scatterplots, it seems Stress, BMI Category, Gender, Occupation, Sleep Disorder, and Blood Pressure have strong linear relationships with the response variable. Sleep Duration. Heart Rate, Age, Quality of Sleep, Physical Activity Level, and Daily Steps seem to have a non-linear relationship with Sleep Duration.
+
+Also during analysis, it appears the variable Heart Rate may be affected by outliers. To test this hypothesis, we ran a Rosner test on the variable.
+
+```{r, echo = FALSE}
+library(EnvStats)
+HeartRateOutliers <- rosnerTest(sleep$Heart.Rate,
+  k = 3
+)
+HeartRateOutliers
+
+```
+The results of the test indicate that there are two outliers in the dataset. 
+
+Let's remove them from the dataset and rerun the analysis for the model with Heart Rate and Sleep Duration.
+
+```{r, echo = FALSE}
+sleep2 <- sleep[-c(277,278),]
+sleep3 <- sleep[-c(6,7,106,104),]
+```
+
+```{r, echo = FALSE}
+par(
+  mfrow=c(1,1)
+)
+plot(
+  x = sleep2$Heart.Rate,
+  y = sleep2$Sleep.Duration,
+  xlab="Heart Rate", 
+  ylab="Sleep Duration"
+)
+lm_HeartRate2 <- lm(
+  formula = Sleep.Duration ~ Heart.Rate,
+  data = sleep2)
+
+plot(lm_HeartRate2)
+```
+
+#c. General Assumptions
+
+The dataset follows the general assumptions for linear regression. Assumption 1 Existence is valid as each x value for all the variables has a possible random Y variable. Independence is valid as all observations in the dataset are from different people with unique IDs. The following residual plot of all the dependent variables in relation to Quality of Sleep shows a residual reasonably close to zero, validating homoscedasticity, linearity, and independence. The following Q-Q plot follows a linear line, further proving linearity.
+
+# Multivariate - with outliers removed
+```{r echo= FALSE}
+lm_quality <- lm(
+  formula = Sleep.Duration ~ Gender + Age + Occupation + Quality.of.Sleep + Physical.Activity.Level + Stress.Level + BMI.Category + Heart.Rate + Daily.Steps + Sleep.Disorder + Blood.Pressure,
+  data = sleep3
+)
+plot(lm_quality)
+summary(lm_quality)
+anova(lm_quality)
+```
+
+#correlation matrix
+
+Let's run a correlation matrix on the model.
+```{r, echo = FALSE}
+#install.packages("ggcorrplot")
+#install.packages("magrittr")
+
+library(magrittr)
+library(ggcorrplot)
+
+# Correlation Matrix with all variables (really hard to look at omg)
+df = subset(sleep4, select = -Occupation)
+model.matrix(~0+., data=sleep4) %>% 
+  cor(use="pairwise.complete.obs") %>% 
+  ggcorrplot(show.diag=FALSE, type="lower", lab=TRUE, lab_size=2)
+
+# Correlation Matrix with all but Occupation (maybe do it like this just for reability in powerpoint?)
+df = subset(sleep4, select = -Occupation)
+model.matrix(~0+., data=df) %>% 
+  cor(use="pairwise.complete.obs") %>% 
+  ggcorrplot(show.diag=FALSE, type="lower", lab=TRUE, lab_size=2)
+
+# Correlation Matrix with only Occupation
+df2 = sleep4[c("Sleep.Duration","Occupation")]
+model.matrix(~0+., data=df2) %>% 
+  cor(use="pairwise.complete.obs") %>% 
+  ggcorrplot(show.diag=FALSE, type="lower", lab=TRUE, lab_size=2)
+```
+
+# Adjusting for collinearity
+We ran a variance inflation factor in order to test for collinearity.
+```{r, echo = FALSE,  results='hide'}
+# Normal Test
+Collinearity <- lm(Sleep.Duration ~ Gender + Age + Occupation + Physical.Activity.Level + Stress.Level + BMI.Category + Heart.Rate + Quality.of.Sleep + Daily.Steps + Sleep.Disorder + Blood.Pressure, data = sleep3)
+ols_vif_tol(Collinearity)
+```
+
+
+There appears to be a lot of collinearity between variables, with Quality of Sleep being collinear with most of the variables. Therefore, to improve the model let's remove the highest collinear variable, Quality of Sleep.
+
+```{r}
+Collinearity2 <- lm(Sleep.Duration ~ Gender + Age + Occupation + Physical.Activity.Level + Stress.Level + BMI.Category + Heart.Rate + Daily.Steps + Sleep.Disorder + Blood.Pressure, data = sleep3)
+ols_vif_tol(Collinearity2)
+```
+As we can see this significantly improved the collinearity of all the variables. We still have some collinearity issues, let's remove the remaining collinearity between gender and heart rate. Since gender has a lower correlation with sleep duration than heart rate, we will remove gender.
+
+```{r, echo = FALSE}
+lm_quality4 <- lm(
+  formula = Sleep.Duration ~ Age + Occupation + Physical.Activity.Level + Stress.Level + BMI.Category + Gender + Daily.Steps + Sleep.Disorder + Blood.Pressure,
+  data = sleep3
+)
+
+plot(lm_quality4)
+summary(lm_quality4)
+anova(lm_quality4)
+
+```
+
+Another collinearity test:
+```{r, echo=FALSE}
+Collinearity3 <- lm(Sleep.Duration ~ Gender + Age + Occupation + Physical.Activity.Level + Stress.Level + BMI.Category + Daily.Steps + Sleep.Disorder + Blood.Pressure, data = sleep3)
+ols_vif_tol(Collinearity3)
+
+Collinearity4 <- lm(Sleep.Duration ~ Age + Occupation + Physical.Activity.Level + Stress.Level + BMI.Category + Daily.Steps + Sleep.Disorder + Blood.Pressure, data = sleep3)
+ols_vif_tol(Collinearity4)
+```
+Much better! One final removal of Gender and now all variables are under 10 VIF.
+
+<br>
+
+#Data Preparation
+#dummy variables
+```{r, echo = FALSE}
+sleep_wdummy <- dummy_cols(sleep)
+head(sleep_wdummy, 10)
+```
+In this dataset we have multiple dummy variables. We have them for gender: male or female, Occupation (11 levels), BMI Category( 4 levels), and Sleep Disorder (3 levels). Blood pressure is also a dummy variable with 1 indicating high blood pressure and 0 indicating normal to low blood pressure.
+
+#Modeling
+
+#Finding Interactions
+Some Interaction tests were done below to suspected possible interactions between variables. If the parameter estimate containing the interaction variable is significant with sleep duration, then it means there is interaction between those two variables.
+
+```{r, echo = FALSE, results = 'hide'}
+# Physical Activity and Daily Steps. Interaction
+PhysicalDailyInter <- lm(Sleep.Duration ~ Physical.Activity.Level*Daily.Steps, 
+                         data = sleep3)
+
+summary(PhysicalDailyInter)
+
+# Physical Activity and Stress Levels. No Interaction
+PhysicalStressInter <- lm(Sleep.Duration ~ Physical.Activity.Level*Stress.Level, 
+                         data = sleep3)
+
+summary(PhysicalStressInter)
+
+# Physical Activity and Age. Interaction
+PhysicalAgeInter <- lm(Sleep.Duration ~ Physical.Activity.Level*Age, 
+                         data = sleep3)
+
+summary(PhysicalAgeInter)
+```
+
+After testing different combinations suspected of interaction, we determined that the pairs Physical Activity and Daily Steps, Physical Activity and Age, as well as Age and Stress all had interaction. Therefore, these three parameters will need to be added to our maximum model.
+
+#Maximum Model
+
+```{r, echo=FALSE, results='hide'}
+lm_quality4 <- lm(
+  formula = Sleep.Duration ~ Age + Occupation + Physical.Activity.Level + Stress.Level + BMI.Category + Daily.Steps + Sleep.Disorder + Blood.Pressure + Physical.Activity.Level*Daily.Steps + Physical.Activity.Level*Age,
+  data = sleep3
+)
+
+summary(lm_quality4)
+anova(lm_quality4)
+plot(lm_quality4)
+```
+
+
+```{r, echo = FALSE, results='hide'}
+model <- lm(
+  formula = lm_quality4,
+  data = sleep3
+)
+
+# Backwards with p-value
+BWDfit.p <- ols_step_backward_p(model, prem = 0.05) #p value using backward method
+BWDfit.p
+#BWDfit.p <- ols_step_backward_p(model, prem = 0.05, details = TRUE)
+
+# Backwards with AIC
+BWDfit.aic <- ols_step_backward_aic(model)
+BWDfit.aic
+
+# Forwards with p-value
+FWDfit.p <- ols_step_forward_p(model, penter = 0.05)
+FWDfit.p
+#FWDfit.p <- ols_step_forward_p(model, penter = 0.05, details = TRUE)
+```
+
+```{r, echo = FALSE}
+# Stepwise
+step(
+  object = lm_quality4,
+  direction = "backward",
+  k = 2
+)
+step(
+  object = lm_quality4,
+  direction = "backward",
+  k = log(nrow(bridge))
+)
+```
+
+After putting our maximum model through multiple tests, it seems they have determined different models. The backwards elimination test, using both p-value and AIC, both eliminated Blood Pressure. Foward Selection kept all present variables. Finally, the lasso test took out sleep disorder.
+
+
+```{r, echo = FALSE, results='hide'}
+# Final k = 22
+lm_updated_b <- update(
+  object = lm_quality4,
+  formula = ~. -Blood.Pressure
+)
+
+lm_updated_l <- update(
+  object = lm_quality4,
+  formula = ~. -Sleep.Disorder
+)
+
+summary(lm_updated_b)
+anova(lm_updated_b)
+plot(lm_updated_b)
+
+summary(lm_updated_l)
+anova(lm_updated_l)
+plot(lm_updated_l)
+```
+
+Interestingly, after redefining our model using the results of backwards selection, the interaction term of Physical Activity Level and Daily Steps are no longer significant, yet was still determined to be kept the backward elimination model.
